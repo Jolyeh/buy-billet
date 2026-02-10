@@ -1,0 +1,110 @@
+<div class="p-4 md:p-8 bg-base-200 min-h-screen">
+
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center mb-10 gap-6">
+        <div>
+            <h1 class="text-4xl font-extrabold text-base-content">Mes Billets</h1>
+            <p class="text-base-content/60">Finalisez votre commande pour garantir vos places.</p>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto space-y-6">
+        @for (ticket of tickets; track ticket.id) {
+        <div class="card lg:card-side bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300">
+
+            <figure class="lg:w-64">
+                <img [src]="ticket.image" [alt]="ticket.nom" class="object-cover h-full w-full" />
+            </figure>
+
+            <div class="card-body">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="badge badge-outline badge-sm mb-2 opacity-70">{{ ticket.categorie }}</div>
+                        <h2 class="card-title text-2xl">{{ ticket.nom }}</h2>
+                        <div class="flex items-center gap-2 mt-2 text-sm opacity-80">
+                            <span class="badge badge-ghost">{{ ticket.lieu }}</span>
+                            <span class="badge badge-ghost">{{ ticket.date | date:'dd/MM/yy HH:mm' }}</span>
+                        </div>
+                    </div>
+
+                    <div class="hidden md:block text-right">
+                        <span class="text-xs uppercase opacity-40">Prix unitaire</span>
+                        <p class="font-bold">{{ ticket.prixUnitaire }} FCFA</p>
+                    </div>
+                </div>
+
+                <div class="divider divider-horizontal before:bg-base-300 after:bg-base-300"></div>
+
+                <div class="card-actions justify-between items-center mt-auto">
+                    <div class="flex flex-col">
+                        <span class="text-2xl font-black text-primary">{{ ticket.prixUnitaire }} FCFA</span>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button (click)="reserver(ticket)" class="btn btn-primary px-8">Réserver</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+    </div>
+
+
+</div>
+
+<dialog id="payment_modal" class="modal modal-bottom sm:modal-middle backdrop-blur-sm">
+    <div class="modal-box p-0 overflow-hidden max-w-md">
+
+        <div class="bg-primary p-6 text-primary-content">
+            <h3 class="font-bold text-xl">Finaliser la réservation</h3>
+            @if (selectedTicket) {
+            <p class="text-sm opacity-80 mt-1">
+                {{ selectedTicket.nom }} — <span class="font-semibold">{{ selectedTicket.prixUnitaire }} FCFA</span>
+            </p>
+            }
+        </div>
+
+        <form (submit)="validerReservation($event)" class="p-6">
+            <div class="space-y-4">
+                <div class="flex gap-4">
+                    <div class="form-control flex-1">
+                        <label class="label px-0">
+                            <span
+                                class="label-text text-xs font-bold uppercase tracking-widest text-slate-400">Nom</span>
+                        </label>
+                        <input [(ngModel)]="nom" name="nom" type="text" class="input input-bordered w-full "
+                            placeholder="Dossou" required />
+                    </div>
+                    <div class="form-control flex-1">
+                        <label class="label px-0">
+                            <span
+                                class="label-text text-xs font-bold uppercase tracking-widest text-slate-400">Prénom</span>
+                        </label>
+                        <input [(ngModel)]="prenom" name="prenom" type="text" class="input input-bordered w-full "
+                            placeholder="Jean" required />
+                    </div>
+                </div>
+
+                <div class="form-control">
+                    <label class="label px-0">
+                        <span class="label-text text-xs font-bold uppercase tracking-widest text-slate-400">Email</span>
+                    </label>
+                    <input [(ngModel)]="email" name="email" type="email" class="input input-bordered w-full "
+                        placeholder="jeandossou@gmail.com" required />
+                </div>
+            </div>
+
+            <div class="modal-action mt-8 flex-col gap-3">
+                <button type="submit" class="btn btn-primary btn-block rounded-xl">
+                    Confirmer la réservation
+                </button>
+                <button type="button" onclick="payment_modal.close()" class="btn btn-ghost btn-sm opacity-50">
+                    Annuler
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>

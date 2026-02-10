@@ -1,0 +1,20 @@
+@if (loadingService.isLoading()) {
+<div
+  class="fixed inset-0 z-20 flex flex-col items-center justify-center bg-base-100/30 backdrop-blur-xl transition-all">
+
+  <div class="absolute w-64 h-64 bg-primary/10 rounded-full blur-[80px] animate-pulse"></div>
+
+  <div class="relative flex flex-col items-center">
+    <span class="loading loading-bars loading-lg text-primary opacity-80"></span>
+
+    <div class="mt-8 flex flex-col items-center gap-1">
+      <span class="text-[10px] uppercase tracking-[0.3em] font-black opacity-40 text-primary">Angular app</span>
+      <span class="text-sm font-light tracking-widest opacity-90">Veuillez patienter...</span>
+    </div>
+  </div>
+
+  <div class="absolute top-0 left-0 w-full h-1 overflow-hidden bg-base-100/10">
+    <div class="h-full bg-primary animate-progress-stripes"></div>
+  </div>
+</div>
+}

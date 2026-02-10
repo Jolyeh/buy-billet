@@ -1,0 +1,18 @@
+<div class="toast toast-top toast-end p-6 gap-3 z-50">
+  @for (toast of toastService.toasts(); track toast.id) {
+  <div
+    class="alert flex items-center gap-3 border-none shadow-2xl bg-base-100/90 backdrop-blur-lg rounded-2xl min-w-[320px] p-4 slide-in-bottom">
+
+    <div [class]="getBorderClass(toast.type)" class="w-1.5 h-10 rounded-full"></div>
+
+    <div class="flex-1">
+      <h3 class="text-sm font-bold">{{ getTitle(toast.type) }}</h3>
+      <p class="text-xs opacity-70">{{ toast.message }}</p>
+    </div>
+
+    <button (click)="toastService.remove(toast.id)" class="btn btn-ghost btn-circle btn-xs">
+      ✕
+    </button>
+  </div>
+  }
+</div>
