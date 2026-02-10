@@ -18,8 +18,8 @@ import { jsPDF } from 'jspdf';
   imports: [CommonModule, LucideAngularModule, FormsModule],
   templateUrl: './home-component.html'
 })
+
 export class HomeComponent implements OnInit {
-  // Variables de formulaire
   nom: string = "";
   prenom: string = "";
   email: string = "";
@@ -29,7 +29,6 @@ export class HomeComponent implements OnInit {
   tickets: EventTicket[] = [];
   payment: Payment = { email: '', name: '', surname: '', ticketId: '' };
 
-  // Injections
   ticketService = inject(TicketService);
   paymentService = inject(PayementService);
   private toast = inject(ToastService);
@@ -59,9 +58,15 @@ export class HomeComponent implements OnInit {
         if (res.status) {
           this.tickets = res.data;
           this.cdr.detectChanges();
+        } else {
+          console.error("Erreur API Tickets :", res.message);
+          this.toast.show("Impossible de charger les billets.", 'alert-error', 3000);
         }
       },
-      error: (err) => console.error("Erreur tickets", err)
+      error: (err) => {
+        console.error("Erreur réseau/serveur Tickets :", err);
+        this.toast.show("Erreur de connexion au serveur.", 'alert-error', 3000);
+      }
     });
   }
 
@@ -79,28 +84,34 @@ export class HomeComponent implements OnInit {
     this.paymentService.callback(id).subscribe({
       next: async (res) => {
         if (res.status) {
-          this.toast.show('Paiement validé ! Envoi du ticket...', 'alert-success', 5000);
+          this.toast.show('Paiement validé ! Génération du ticket...', 'alert-success', 5000);
 
-          // Génération et Envoi
-          await this.generateQRCode();
-          const pdfBase64 = this.creerFichierPDF();
+          try {
+            await this.generateQRCode();
+            const pdfBase64 = this.creerFichierPDF();
 
-          if (pdfBase64) {
-            this.envoyerTicketParMail(pdfBase64);
-          } else {
+            if (pdfBase64) {
+              this.envoyerTicketParMail(pdfBase64);
+            } else {
+              throw new Error("Le PDF n'a pas pu être généré.");
+            }
+          } catch (err) {
             this.loader.hide();
+            console.error("Erreur lors de la création du ticket :", err);
+            this.toast.show("Erreur lors de la création visuelle du ticket.", 'alert-error', 5000);
           }
 
-          // Nettoyage après succès
           sessionStorage.removeItem('pending_reservation');
         } else {
           this.loader.hide();
-          this.toast.show('Paiement non confirmé.', 'alert-info', 5000);
+          console.error("Échec validation paiement :", res);
+          this.toast.show(res.message || 'Paiement non confirmé.', 'alert-info', 5000);
         }
       },
       error: (err) => {
         this.loader.hide();
-        this.toast.show('Erreur de vérification', 'alert-error', 3000);
+        console.error("Erreur Callback Paiement :", err);
+        this.toast.show('Erreur lors de la vérification du paiement.', 'alert-error', 4000);
       }
     });
   }
@@ -111,74 +122,57 @@ export class HomeComponent implements OnInit {
       this.qrCodeImage = await QRCode.toDataURL(data, { width: 300, margin: 2 });
       this.cdr.detectChanges();
     } catch (err) {
-      console.error("Erreur QR", err);
+      console.error("Erreur Génération QR Code :", err);
+      throw err;
     }
   }
 
   creerFichierPDF(): string | null {
     if (!this.qrCodeImage) return null;
 
-    // 1. Format Paysage (Landscape) - Format type ticket cinéma/concert (210x70mm)
     const doc = new jsPDF({
       orientation: 'landscape',
       unit: 'mm',
       format: [210, 70]
     });
 
-    // --- PARTIE GAUCHE : IMAGE & TITRE ---
-    // Fond noir pour la zone image (si l'image ne couvre pas tout)
     doc.setFillColor(20, 20, 20);
     doc.rect(0, 0, 140, 70, 'F');
 
-    // Si tu as une image d'événement, tu peux l'ajouter ici :
-    // doc.addImage(this.selectedTicket?.image, 'JPEG', 0, 0, 140, 70);
-
-    // Texte sur l'image (Artist / Event Name)
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(28);
     doc.setFont("helvetica", "bold");
-    doc.text(this.selectedTicket?.nom?.toUpperCase() || 'NAME ARTIST', 10, 50);
+    doc.text(this.selectedTicket?.nom?.toUpperCase() || 'ÉVÉNEMENT', 10, 50);
 
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.text(this.selectedTicket?.lieu || 'DOWNTOWN ARENA, NEW YORK', 10, 58);
+    doc.text(this.selectedTicket?.lieu || 'LIEU À DÉFINIR', 10, 58);
 
-    // --- PARTIE DROITE : INFOS & QR CODE ---
-    // Fond blanc pour la zone de droite
     doc.setFillColor(255, 255, 255);
     doc.rect(140, 0, 70, 70, 'F');
 
-    // Petit texte d'entête
     doc.setTextColor(60, 60, 60);
     doc.setFontSize(8);
-    doc.text("A SPECIAL GIFT FOR YOU", 175, 10, { align: 'center' });
+    doc.text("BILLET RÉSERVÉ POUR", 175, 10, { align: 'center' });
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text(`${this.prenom} ${this.nom}`.toUpperCase(), 175, 15, { align: 'center' });
 
-    // Détails Admission
     doc.setTextColor(40, 40, 40);
     doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
     doc.text("ADMISSION", 145, 25);
-    doc.setFont("helvetica", "bold");
     doc.text("RESERVED", 145, 29);
 
-    // Date et Heure
     doc.setFontSize(11);
-    const dateStr = this.selectedTicket?.date ? new Date(this.selectedTicket.date).toLocaleDateString() : '12/JAN/2026';
-    doc.text(`7:00 PM  ${dateStr}`, 145, 42);
+    const dateStr = this.selectedTicket?.date ? new Date(this.selectedTicket.date).toLocaleDateString() : 'À DÉTERMINER';
+    doc.text(`DATE: ${dateStr}`, 145, 42);
 
-    // QR Code à droite
     doc.addImage(this.qrCodeImage, 'PNG', 168, 48, 18, 18);
 
-    // Texte vertical "ADMIT ONE" sur le bord droit
     doc.setFillColor(0, 0, 0);
     doc.rect(195, 0, 15, 70, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    // Rotation pour le texte vertical
     doc.text("ADMIT ONE", 205, 35, { angle: 90, align: 'center' });
 
     return doc.output('datauristring');
@@ -193,13 +187,19 @@ export class HomeComponent implements OnInit {
     };
 
     this.ticketService.sendTicketEmail(payload).subscribe({
-      next: () => {
+      next: (res) => {
         this.loader.hide();
-        this.toast.show('Ticket envoyé par mail !', 'alert-success', 5000);
+        if (res.status) {
+          this.toast.show('Ticket envoyé par mail avec succès !', 'alert-success', 5000);
+        } else {
+          console.error("Erreur serveur envoi mail :", res.message);
+          this.toast.show("Le mail n'a pas pu partir, mais votre paiement est validé.", 'alert-warning', 7000);
+        }
       },
-      error: () => {
+      error: (err) => {
         this.loader.hide();
-        this.toast.show("Erreur d'envoi mail", 'alert-error', 3000);
+        console.error("Erreur réseau Envoi Mail :", err);
+        this.toast.show("Erreur d'envoi du mail. Veuillez contacter le support.", 'alert-error', 6000);
       }
     });
   }
@@ -214,15 +214,18 @@ export class HomeComponent implements OnInit {
     event.preventDefault();
     event.stopPropagation();
 
+    const modal = document.getElementById('payment_modal') as HTMLDialogElement;
+
     if (!this.nom || !this.prenom || !this.email) {
-      this.toast.show('Champs requis', 'alert-error', 3000);
+      modal.close();
+      this.toast.show('Veuillez remplir tous les champs.', 'alert-warning', 3000);
       return;
     }
 
-    // SAUVEGARDE AVANT REDIRECTION
     const backup = { nom: this.nom, prenom: this.prenom, email: this.email, selectedTicket: this.selectedTicket };
     sessionStorage.setItem('pending_reservation', JSON.stringify(backup));
 
+    modal.close();
     this.loader.show();
     this.payment.email = this.email;
     this.payment.name = this.nom;
@@ -235,10 +238,15 @@ export class HomeComponent implements OnInit {
           window.location.href = res.data.paymentUrl;
         } else {
           this.loader.hide();
-          this.toast.show('Erreur paiement', 'alert-error', 3000);
+          console.error("Erreur Création Transaction :", res);
+          this.toast.show('Erreur lors de l\'initialisation du paiement.', 'alert-error', 3000);
         }
       },
-      error: () => this.loader.hide()
+      error: (err) => {
+        this.loader.hide();
+        console.error("Erreur Réseau Paiement :", err);
+        this.toast.show('Impossible de joindre le service de paiement.', 'alert-error', 3000);
+      }
     });
   }
 }
