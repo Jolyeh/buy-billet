@@ -1,1 +1,1 @@
-export const apiUrl = 'http://0.0.0.0:3000/api/';
+export const apiUrl = 'https://buy-billet-api.vercel.app/api/';
