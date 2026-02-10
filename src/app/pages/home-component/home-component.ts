@@ -127,7 +127,7 @@ export class HomeComponent implements OnInit {
     }
   }
 
-  creerFichierPDF(): string | null {
+  /*creerFichierPDF(): string | null {
     if (!this.qrCodeImage) return null;
 
     const doc = new jsPDF({
@@ -174,6 +174,122 @@ export class HomeComponent implements OnInit {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(18);
     doc.text("ADMIT ONE", 205, 35, { angle: 90, align: 'center' });
+
+    return doc.output('datauristring');
+  }*/
+
+  creerFichierPDF(): string | null {
+    if (!this.qrCodeImage) return null;
+
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: [200, 80]
+    });
+
+    // Fond blanc
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, 200, 80, 'F');
+
+    // Bande décorative supérieure
+    doc.setFillColor(139, 92, 246);
+    doc.rect(0, 0, 145, 3, 'F');
+
+    // Section détails (droite)
+    doc.setFillColor(249, 250, 251);
+    doc.rect(145, 0, 40, 80, 'F');
+
+    // Stub noir (extrême droite)
+    doc.setFillColor(17, 24, 39);
+    doc.rect(185, 0, 15, 80, 'F');
+
+    // Badge catégorie
+    if (this.selectedTicket?.categorie) {
+      doc.setFillColor(139, 92, 246);
+      doc.roundedRect(15, 12, 35, 7, 2, 2, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "bold");
+      doc.text(this.selectedTicket.categorie.toUpperCase(), 32.5, 16.5, { align: 'center' });
+    }
+
+    // Titre événement
+    doc.setTextColor(31, 41, 55);
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    const eventName = this.selectedTicket?.nom?.toUpperCase() || 'ÉVÉNEMENT';
+    doc.text(eventName, 15, 30, { maxWidth: 120 });
+
+    // Lieu
+    doc.setTextColor(107, 114, 128);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(this.selectedTicket?.lieu || 'LIEU À DÉFINIR', 15, 42);
+
+    // Date
+    const dateStr = this.selectedTicket?.date
+      ? new Date(this.selectedTicket.date).toLocaleDateString('fr-FR', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).toUpperCase()
+      : 'DATE À DÉTERMINER';
+
+    doc.setTextColor(31, 41, 55);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(dateStr, 15, 55, { maxWidth: 120 });
+
+    // Porteur du billet
+    doc.setTextColor(107, 114, 128);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text("BILLET RÉSERVÉ POUR", 15, 63);
+
+    doc.setTextColor(31, 41, 55);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(`${this.prenom} ${this.nom}`.toUpperCase(), 15, 68);
+
+    // Section détails - Admission
+    doc.setTextColor(107, 114, 128);
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.text("ADMISSION", 147, 15);
+
+    // QR Code avec label
+    doc.setFontSize(6);
+    doc.setFont("helvetica", "normal");
+    doc.text("SCAN POUR", 161, 52, { align: 'center' });
+    doc.text("VALIDER", 161, 54.5, { align: 'center' });
+    doc.addImage(this.qrCodeImage, 'PNG', 151, 55, 20, 20);
+
+    // Stub - ADMIT ONE vertical
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("ADMIT ONE", 192.5, 40, { angle: 90, align: 'center' });
+
+    // Date courte sur le stub
+    const shortDate = this.selectedTicket?.date
+      ? new Date(this.selectedTicket.date).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit'
+      })
+      : '';
+    doc.setFontSize(7);
+    doc.text(shortDate, 192.5, 65, { angle: 90, align: 'center' });
+
+    // Ligne de perforation (pointillés)
+    doc.setDrawColor(107, 114, 128);
+    doc.setLineWidth(0.3);
+    for (let y = 5; y < 75; y += 4) {
+      doc.line(185, y, 185, y + 2);
+    }
 
     return doc.output('datauristring');
   }
